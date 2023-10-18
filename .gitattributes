@@ -1,2 +1,55 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+
+const { Client, Collection } = require('discord.js');
+const client = new Client({ intents: ['GUILDS', 'GUILD_MESSAGES', 'GUILD_MEMBERS'] });
+const fs = require('fs');
+const path = require('path');
+const prefix = '.';
+const adminRoleId = '775455070958780416'; // Add the role ID
+
+client.commands = new Collection();
+
+// Load commands from the "commands" folder
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+
+for (const file of commandFiles) {
+  const command = require(`./commands/${file}`);
+  client.commands.set(command.name, command);
+}
+
+client.on('ready', () => {
+  console.log(`[${new Date().toISOString()}] Logged in as ${client.user.tag}!`);
+});
+``
+client.on('messageCreate', async msg => {
+  // Ignore messages sent by the bot
+  if (msg.author.bot) return;
+
+  console.log(`[${new Date().toISOString()}] Received message from ${msg.author.tag}: ${msg.content}`);
+
+  if (!msg.content.startsWith(prefix)) return;
+  const args = msg.content.slice(prefix.length).trim().split(/ +/);
+  const commandName = args.shift().toLowerCase();
+
+  // Check if the member has the specified role
+  if (!msg.member.roles.cache.has(adminRoleId)) {
+    return msg.reply('You do not have permission to use this command.');
+  }
+
+  const command = client.commands.get(commandName);
+
+  if (!command) return;
+
+  try {
+    await command.execute(msg, args, client);
+  } catch (error) {
+    console.error(error);
+    msg.reply('There was an error executing that command. Please try again later.');
+  }
+});
+
+//Client login token (change every 3 months)
+client.login('NjAwMDYzNDg5MDQ1ODIzNTA2.Gh-lDn.2-6X58uoO-sA6XvdwwwELRsdpKD0oXbsPJohnQ');
+
